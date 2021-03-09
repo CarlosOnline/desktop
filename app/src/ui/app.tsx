@@ -145,6 +145,10 @@ const UpdateCheckInterval = 4 * HourInMilliseconds
  */
 const SendStatsInterval = 4 * HourInMilliseconds
 
+// CPG: Skip check for updates
+const SkipCheckForUpdates = true
+
+
 interface IAppProps {
   readonly dispatcher: Dispatcher
   readonly repositoryStateManager: RepositoryStateCache
@@ -519,6 +523,11 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private checkForUpdates(inBackground: boolean) {
+    // CPG: Skip check for updates
+    if (SkipCheckForUpdates) {
+        return
+    }
+    
     if (__LINUX__) {
       return
     }
@@ -2325,7 +2334,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     let title: string
     if (repository) {
       icon = iconForRepository(repository)
-      title = repository.name
+      title = repository.path // CPG: repo title
     } else if (this.state.repositories.length > 0) {
       icon = OcticonSymbol.repo
       title = __DARWIN__ ? 'Select a Repository' : 'Select a repository'

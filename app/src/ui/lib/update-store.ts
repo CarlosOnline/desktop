@@ -15,6 +15,9 @@ import { ReleaseSummary } from '../../models/release-notes'
 import { generateReleaseSummary } from '../../lib/release-notes'
 import { setNumber, getNumber } from '../../lib/local-storage'
 
+// CPG: Skip check for updates
+const SkipCheckForUpdates = true
+
 /** The states the auto updater can be in. */
 export enum UpdateStatus {
   /** The auto updater is checking for updates. */
@@ -153,6 +156,11 @@ class UpdateStore {
    *                       this check user-initiated?
    */
   public checkForUpdates(inBackground: boolean) {
+    // CPG: Skip check for updates
+    if (SkipCheckForUpdates) {
+        return
+    }
+      
     // An update has been downloaded and the app is waiting to be restarted.
     // Checking for updates again may result in the running app being nuked
     // when it finds a subsequent update.
