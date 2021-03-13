@@ -83,7 +83,7 @@ export class RepositoryListItem extends React.Component<
         <div className="name">
           {prefix ? <span className="prefix">{prefix}</span> : null}
           <HighlightText
-            text={repository.name}
+            text={repository.path} // CPG: Show repository path instead
             highlight={this.props.matches.title}
           />
         </div>
