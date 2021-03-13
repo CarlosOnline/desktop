@@ -14,6 +14,7 @@ import {
   IRepositoryState,
   RepositorySectionTab,
   ChangesSelectionKind,
+  FoldoutType,
 } from '../lib/app-state'
 import { Dispatcher } from './dispatcher'
 import { IssuesStore, GitHubUserStore } from '../lib/stores'
@@ -232,7 +233,7 @@ export class RepositoryView extends React.Component<
         repository={this.props.repository}
         isLocalRepository={this.props.state.remote === null}
         compareState={this.props.state.compareState}
-        selectedCommitSha={this.props.state.commitSelection.sha}
+        selectedCommitShas={this.props.state.commitSelection.shas}
         currentBranch={currentBranch}
         emoji={this.props.emoji}
         commitLookup={this.props.state.commitLookup}
@@ -247,6 +248,8 @@ export class RepositoryView extends React.Component<
         tagsToPush={this.props.state.tagsToPush}
         aheadBehindStore={this.props.aheadBehindStore}
         hasShownCherryPickIntro={this.props.hasShownCherryPickIntro}
+        onDragCommitEnd={this.onDragCommitEnd}
+        isCherryPickInProgress={this.props.state.cherryPickState.step !== null}
       />
     )
   }
@@ -332,7 +335,8 @@ export class RepositoryView extends React.Component<
   private renderContentForHistory(): JSX.Element {
     const { commitSelection } = this.props.state
 
-    const sha = commitSelection.sha
+    const sha =
+      commitSelection.shas.length === 1 ? commitSelection.shas[0] : null
 
     const selectedCommit =
       sha != null ? this.props.state.commitLookup.get(sha) || null : null
@@ -357,6 +361,7 @@ export class RepositoryView extends React.Component<
         onOpenBinaryFile={this.onOpenBinaryFile}
         onChangeImageDiffType={this.onChangeImageDiffType}
         onDiffOptionsOpened={this.onDiffOptionsOpened}
+        areMultipleCommitsSelected={commitSelection.shas.length > 1}
       />
     )
   }
@@ -542,5 +547,15 @@ export class RepositoryView extends React.Component<
       )
     }
     return null
+  }
+
+  /**
+   * This method is a generic event handler for when a commit has ended being
+   * dragged.
+   *
+   * Currently only used for cherry picking, but this could be more generic.
+   */
+  private onDragCommitEnd = async () => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Branch)
   }
 }

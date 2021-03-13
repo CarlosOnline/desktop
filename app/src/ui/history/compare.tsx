@@ -7,7 +7,6 @@ import {
   ICompareBranch,
   ComparisonMode,
   IDisplayHistory,
-  FoldoutType,
 } from '../../lib/app-state'
 import { CommitList } from './commit-list'
 import { Repository } from '../../models/repository'
@@ -37,7 +36,7 @@ interface ICompareSidebarProps {
   readonly localCommitSHAs: ReadonlyArray<string>
   readonly dispatcher: Dispatcher
   readonly currentBranch: Branch | null
-  readonly selectedCommitSha: string | null
+  readonly selectedCommitShas: ReadonlyArray<string>
   readonly onRevertCommit: (commit: Commit) => void
   readonly onViewCommitOnGitHub: (sha: string) => void
   readonly onCompareListScrolled: (scrollTop: number) => void
@@ -45,11 +44,13 @@ interface ICompareSidebarProps {
     repository: Repository,
     commits: ReadonlyArray<CommitOneLine>
   ) => void
+  readonly onDragCommitEnd: () => void
   readonly compareListScrollTop?: number
   readonly localTags: Map<string, string> | null
   readonly tagsToPush: ReadonlyArray<string> | null
   readonly aheadBehindStore: AheadBehindStore
   readonly hasShownCherryPickIntro: boolean
+  readonly isCherryPickInProgress: boolean
 }
 
 interface ICompareSidebarState {
@@ -224,7 +225,7 @@ export class CompareSidebar extends React.Component<
         isLocalRepository={this.props.isLocalRepository}
         commitLookup={this.props.commitLookup}
         commitSHAs={commitSHAs}
-        selectedSHA={this.props.selectedCommitSha}
+        selectedSHAs={this.props.selectedCommitShas}
         localCommitSHAs={this.props.localCommitSHAs}
         emoji={this.props.emoji}
         onViewCommitOnGitHub={this.props.onViewCommitOnGitHub}
@@ -233,7 +234,7 @@ export class CompareSidebar extends React.Component<
             ? this.props.onRevertCommit
             : undefined
         }
-        onCommitSelected={this.onCommitSelected}
+        onCommitsSelected={this.onCommitsSelected}
         onScroll={this.onScroll}
         onCreateTag={this.onCreateTag}
         onDeleteTag={this.onDeleteTag}
@@ -243,9 +244,10 @@ export class CompareSidebar extends React.Component<
         compareListScrollTop={this.props.compareListScrollTop}
         tagsToPush={this.props.tagsToPush}
         onDragCommitStart={this.onDragCommitStart}
-        onDragCommitEnd={this.onDragCommitEnd}
+        onDragCommitEnd={this.props.onDragCommitEnd}
         hasShownCherryPickIntro={this.props.hasShownCherryPickIntro}
         onDismissCherryPickIntro={this.onDismissCherryPickIntro}
+        isCherryPickInProgress={this.props.isCherryPickInProgress}
       />
     )
   }
@@ -407,10 +409,10 @@ export class CompareSidebar extends React.Component<
     }
   }
 
-  private onCommitSelected = (commit: Commit) => {
+  private onCommitsSelected = (commits: ReadonlyArray<Commit>) => {
     this.props.dispatcher.changeCommitSelection(
       this.props.repository,
-      commit.sha
+      commits.map(c => c.sha)
     )
 
     this.loadChangedFilesScheduler.queue(() => {
@@ -536,16 +538,6 @@ export class CompareSidebar extends React.Component<
       kind: CherryPickStepKind.CommitsChosen,
       commits,
     })
-  }
-
-  /**
-   * This method is a generic event handler for when a commit has ended being
-   * dragged.
-   *
-   * Currently only used for cherry picking, but this could be more generic.
-   */
-  private onDragCommitEnd = () => {
-    this.props.dispatcher.closeFoldout(FoldoutType.Branch)
   }
 }
 

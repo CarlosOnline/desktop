@@ -20,6 +20,7 @@ import {
 interface ICommitProps {
   readonly gitHubRepository: GitHubRepository | null
   readonly commit: Commit
+  readonly selectedCommits: ReadonlyArray<Commit>
   readonly emoji: Map<string, string>
   readonly isLocal: boolean
   readonly onRevertCommit?: (commit: Commit) => void
@@ -32,6 +33,7 @@ interface ICommitProps {
   readonly showUnpushedIndicator: boolean
   readonly unpushedIndicatorTitle?: string
   readonly unpushedTags?: ReadonlyArray<string>
+  readonly isCherryPickInProgress?: boolean
 }
 
 interface ICommitListItemState {
@@ -72,7 +74,9 @@ export class CommitListItem extends React.PureComponent<
     } = commit
 
     const isDraggable =
-      this.props.onDragStart !== undefined && enableCherryPicking()
+      this.props.onDragStart !== undefined &&
+      this.canCherryPick() &&
+      enableCherryPicking()
 
     return (
       <div
@@ -157,13 +161,24 @@ export class CommitListItem extends React.PureComponent<
 
   private onCherryPick = () => {
     if (this.props.onCherryPick !== undefined) {
-      this.props.onCherryPick([this.props.commit])
+      this.props.onCherryPick(this.props.selectedCommits)
     }
   }
 
   private onContextMenu = (event: React.MouseEvent<any>) => {
     event.preventDefault()
 
+    let items: IMenuItem[] = []
+    if (this.props.selectedCommits.length > 1) {
+      items = this.getContextMenuMultipleCommits()
+    } else {
+      items = this.getContextMenuForSingleCommit()
+    }
+
+    showContextualMenu(items)
+  }
+
+  private getContextMenuForSingleCommit(): IMenuItem[] {
     let viewOnGitHubLabel = 'View on GitHub'
     const gitHubRepository = this.props.gitHubRepository
 
@@ -211,6 +226,7 @@ export class CommitListItem extends React.PureComponent<
       items.push({
         label: __DARWIN__ ? 'Cherry Pick Commit…' : 'Cherry pick commit…',
         action: this.onCherryPick,
+        enabled: this.canCherryPick(),
       })
     }
 
@@ -227,7 +243,29 @@ export class CommitListItem extends React.PureComponent<
       }
     )
 
-    showContextualMenu(items)
+    return items
+  }
+
+  private getContextMenuMultipleCommits(): IMenuItem[] {
+    const items: IMenuItem[] = []
+
+    const count = this.props.selectedCommits.length
+    if (enableCherryPicking()) {
+      items.push({
+        label: __DARWIN__
+          ? `Cherry Pick ${count} Commits…`
+          : `Cherry pick ${count} commits…`,
+        action: this.onCherryPick,
+        enabled: this.canCherryPick(),
+      })
+    }
+
+    return items
+  }
+
+  private canCherryPick(): boolean {
+    const { onCherryPick, isCherryPickInProgress } = this.props
+    return onCherryPick !== undefined && isCherryPickInProgress === false
   }
 
   private getDeleteTagsMenuItem(): IMenuItem | null {
@@ -271,7 +309,7 @@ export class CommitListItem extends React.PureComponent<
    **/
   private onDragStart = (event: React.DragEvent<HTMLDivElement>): void => {
     if (this.props.onDragStart !== undefined) {
-      this.props.onDragStart([this.props.commit])
+      this.props.onDragStart(this.props.selectedCommits)
     }
   }
 
